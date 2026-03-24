@@ -3,6 +3,9 @@ Answer evaluator - provides feedback on user answers using LLM
 """
 from typing import Dict, Any
 from .opencode_client import OpenCodeClient
+from .logger import get_logger
+
+logger = get_logger()
 
 
 class AnswerEvaluator:
@@ -34,15 +37,21 @@ STUDENT'S ANSWER:
 
 {hints_text}
 
-Provide constructive feedback on their answer. Return ONLY a valid JSON object:
+Provide constructive feedback on their answer.
+
+CRITICAL: You MUST respond with ONLY a valid JSON object. Do not include any explanatory text before or after the JSON.
+
+Expected output structure (return EXACTLY this format):
 {{
   "feedback": "Your constructive feedback here (2-4 sentences)",
-  "key_points": ["point 1", "point 2", "point 3"],
-  "accuracy": "excellent|good|partial|needs_improvement",
-  "suggestions": ["suggestion 1", "suggestion 2"]
+  "key_points": ["Important concept 1", "Important concept 2", "Important concept 3"],
+  "accuracy": "excellent",
+  "suggestions": ["Topic to explore further", "Related concept to learn"]
 }}
 
-Be specific to their answer and the actual code changes shown."""
+Valid accuracy values: "excellent", "good", "partial", "needs_improvement"
+
+Be specific to their answer and the actual code changes shown. Return ONLY the JSON object, nothing else."""
 
     def __init__(self, opencode_client: OpenCodeClient):
         self.client = opencode_client
@@ -64,6 +73,8 @@ Be specific to their answer and the actual code changes shown."""
         Returns:
             Dict with feedback, key_points, accuracy, suggestions
         """
+        logger.info(f"Evaluating answer for question: {question.get('question', '')[:50]}...")
+        
         # Build hints text if available
         hints_text = ""
         if question.get('hints'):
@@ -79,20 +90,30 @@ Be specific to their answer and the actual code changes shown."""
             hints_text=hints_text
         )
         
+        logger.debug(f"Generated evaluation prompt length: {len(prompt)} characters")
+        
         try:
             # Get JSON response from LLM
+            logger.info("Requesting evaluation from LLM...")
             response = self.client.ask_json(prompt, system_prompt=self.SYSTEM_PROMPT)
             
+            logger.debug(f"Received evaluation response: {response}")
+            
             # Validate and return
-            return {
+            result = {
                 'feedback': response.get('feedback', 'Thank you for your answer.'),
                 'key_points': response.get('key_points', []),
                 'accuracy': response.get('accuracy', 'partial'),
                 'suggestions': response.get('suggestions', [])
             }
             
+            logger.info(f"Evaluation completed with accuracy: {result['accuracy']}")
+            return result
+            
         except Exception as e:
             # Fallback feedback if LLM fails
+            logger.error(f"Answer evaluation failed: {e}", exc_info=True)
+            logger.warning("Using fallback feedback")
             print(f"Warning: Answer evaluation failed ({e}), using fallback feedback")
             return {
                 'feedback': "Thank you for your thoughtful answer. Keep exploring these concepts!",

@@ -3,6 +3,9 @@ Question generator - creates learning questions from code diffs using LLM
 """
 from typing import Dict, List, Any
 from .opencode_client import OpenCodeClient
+from .logger import get_logger
+
+logger = get_logger()
 
 
 class QuestionGenerator:
@@ -42,20 +45,40 @@ Generate {question_count} questions covering these categories (distribute evenly
 5. Scalability - How does this handle growth? What are the limits?
 6. Best Practices - What could be improved? What risks exist?
 
-IMPORTANT: Return ONLY a valid JSON object with this exact structure:
+CRITICAL: You MUST respond with ONLY a valid JSON object. Do not include any explanatory text before or after the JSON.
+
+Expected output structure (return EXACTLY this format):
 {{
   "questions": [
     {{
       "id": 1,
-      "category": "architecture|syntax|design_patterns|alternatives|scalability|best_practices",
-      "question": "The actual question text",
-      "difficulty": "beginner|intermediate|advanced",
-      "hints": ["hint1", "hint2"]
+      "category": "architecture",
+      "question": "Why was this particular architectural approach chosen for the changes?",
+      "difficulty": "intermediate",
+      "hints": ["Consider the project structure", "Think about maintainability"]
+    }},
+    {{
+      "id": 2,
+      "category": "syntax",
+      "question": "What language-specific feature is being used here and why?",
+      "difficulty": "beginner",
+      "hints": ["Look at the new syntax introduced", "Consider readability"]
+    }},
+    {{
+      "id": 3,
+      "category": "design_patterns",
+      "question": "Which design pattern is applied in this implementation?",
+      "difficulty": "advanced",
+      "hints": ["Look for common patterns", "Consider object relationships"]
     }}
   ]
 }}
 
-Make questions specific to the actual code changes shown, not generic. Focus on the most important learning opportunities."""
+Valid category values: "architecture", "syntax", "design_patterns", "alternatives", "scalability", "best_practices"
+Valid difficulty values: "beginner", "intermediate", "advanced"
+
+Make questions specific to the actual code changes shown, not generic. Focus on the most important learning opportunities.
+Return ONLY the JSON object, nothing else."""
 
     def __init__(self, opencode_client: OpenCodeClient):
         self.client = opencode_client
@@ -79,6 +102,9 @@ Make questions specific to the actual code changes shown, not generic. Focus on 
         Returns:
             List of question dicts with id, category, question, difficulty, hints
         """
+        logger.info(f"Generating {question_count} questions for commit: {commit_message[:50]}...")
+        logger.debug(f"Analysis: {analysis}")
+        
         # Build the prompt
         prompt = self.QUESTION_GENERATION_PROMPT.format(
             question_count=question_count,
@@ -91,17 +117,24 @@ Make questions specific to the actual code changes shown, not generic. Focus on 
             diff=diff
         )
         
+        logger.debug(f"Generated prompt length: {len(prompt)} characters")
+        
         try:
             # Get JSON response from LLM
+            logger.info("Requesting questions from LLM...")
             response = self.client.ask_json(prompt, system_prompt=self.SYSTEM_PROMPT)
+            
+            logger.debug(f"Received response: {response}")
             
             if 'questions' in response and isinstance(response['questions'], list):
                 questions = response['questions']
+                logger.info(f"LLM returned {len(questions)} questions")
                 
                 # Validate and clean questions
                 validated_questions = []
                 for i, q in enumerate(questions[:question_count]):
                     if not isinstance(q, dict):
+                        logger.warning(f"Question {i+1} is not a dict, skipping: {q}")
                         continue
                     
                     validated_q = {
@@ -118,18 +151,27 @@ Make questions specific to the actual code changes shown, not generic. Focus on 
                     # Only include if question text exists
                     if validated_q['question']:
                         validated_questions.append(validated_q)
+                        logger.debug(f"Validated question {i+1}: {validated_q['question'][:60]}...")
+                    else:
+                        logger.warning(f"Question {i+1} has no text, skipping")
                 
+                logger.info(f"Successfully validated {len(validated_questions)} questions")
                 return validated_questions
             else:
+                logger.error(f"Invalid response format from LLM: {response}")
                 raise ValueError("Invalid response format from LLM")
                 
         except Exception as e:
             # Fallback: return generic questions if LLM fails
+            logger.error(f"Question generation failed: {e}", exc_info=True)
+            logger.warning("Using fallback questions")
             print(f"Warning: Question generation failed ({e}), using fallback questions")
             return self._get_fallback_questions(analysis, question_count)
     
     def _get_fallback_questions(self, analysis: Dict[str, Any], count: int = 6) -> List[Dict[str, Any]]:
         """Generate basic fallback questions if LLM fails"""
+        logger.info(f"Generating {count} fallback questions")
+        
         questions = [
             {
                 'id': 1,

@@ -49,6 +49,8 @@ vca config
 - `vca init` - Initialize vca in current git repository
 - `vca ask` - Generate questions for your last commit
 - `vca ask --diff HEAD~3` - Questions for specific commit range
+- `vca ask --count 10` - Generate 10 questions instead of default
+- `vca --debug ask` - Enable debug logging for troubleshooting
 - `vca config` - Configure OpenCode model and preferences
 - `vca status` - Show vca status and configuration
 
@@ -70,10 +72,37 @@ vca stores its data in `.vca/` directory in your repository:
 ```
 .vca/
 ├── config.json          # Your preferences and settings
-└── sessions/            # Q&A session history
+├── sessions/            # Q&A session history
+└── logs/                # Debug logs (one per day)
+    └── vca_20260324.log
 ```
 
 Add `.vca/` to your `.gitignore` to keep learning sessions private.
+
+## Debugging
+
+If you encounter issues with question generation or rendering:
+
+1. **Enable debug mode** to see detailed logs:
+   ```bash
+   vca --debug ask
+   ```
+
+2. **Check the logs** in `.vca/logs/` for detailed information:
+   ```bash
+   cat .vca/logs/vca_*.log
+   ```
+
+3. **Common issues**:
+   - Questions not rendering: Check logs for JSON parsing errors
+   - OpenCode errors: Ensure OpenCode CLI is installed and accessible
+   - Timeout errors: Large diffs may take longer, check network/API status
+
+The debug logs include:
+- OpenCode CLI command execution details
+- LLM request/response information
+- JSON parsing attempts and errors
+- Question generation and evaluation flow
 
 ## Requirements
 
