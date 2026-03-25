@@ -162,16 +162,15 @@ class MainScreen(Screen):
 
     def refresh_screen(self) -> None:
         """Refresh the screen with current question."""
-        # Update question view
-        question_view = self.query_one(QuestionView)
         question_data = self.app.get_current_question()
-        
-        # Remove old question view
-        question_view.remove()
-        
-        # Add new question view
         main_content = self.query_one("#main-content")
         commit_card = self.query_one("#commit-card")
+        
+        # Remove all existing question views (should only be one)
+        for question_view in self.query(".question-card").results(QuestionView):
+            question_view.remove()
+        
+        # Create and add new question view
         new_question_view = QuestionView(
             question_data=question_data,
             question_num=self.app.current_question_idx + 1,

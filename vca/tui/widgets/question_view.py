@@ -17,7 +17,7 @@ class QuestionView(Container):
             total: Total number of questions
             show_hints: Whether to show hints
         """
-        super().__init__(id="question-card")
+        super().__init__(classes="question-card")
         self.question_data = question_data
         self.question_num = question_num
         self.total = total

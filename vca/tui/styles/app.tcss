@@ -65,7 +65,7 @@ Screen {
 
 /* ─────────────────────────── Question Card ─────────────────────────── */
 
-#question-card {
+.question-card {
     height: auto;
     width: 100%;
     background: $boost;
