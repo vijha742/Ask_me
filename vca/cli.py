@@ -89,8 +89,9 @@ def init(ctx):
 @main.command()
 @click.option('--diff', default='HEAD', help='Commit reference to analyze (default: HEAD)')
 @click.option('--count', default=None, type=int, help='Number of questions to generate')
+@click.option('--tui/--no-tui', default=True, help='Use TUI interface (default: True)')
 @click.pass_context
-def ask(ctx, diff, count):
+def ask(ctx, diff, count, tui):
     """Generate learning questions for a commit"""
     ui = TerminalUI()
     
@@ -188,8 +189,51 @@ def ask(ctx, diff, count):
         ui.print_success(f"Generated {len(questions)} questions")
         ui.console.print()
         
-        # Interactive Q&A session
+        # Initialize evaluator
         evaluator = AnswerEvaluator(opencode)
+        
+        # Choose UI mode
+        if tui:
+            # Launch TUI
+            logger.info("Launching TUI interface...")
+            from .tui.app import VCAApp
+            
+            app = VCAApp(
+                questions=questions,
+                commit_info={
+                    'message': commit_message,
+                    'diff': relevant_diff,
+                    'hash': commit_hash
+                },
+                evaluator=evaluator,
+                generator=generator
+            )
+            
+            # Run the TUI app
+            app.run()
+            
+            # After TUI exits, save session
+            logger.info("Saving session...")
+            session_data = {
+                'commit_hash': commit_hash,
+                'commit_message': commit_message,
+                'analysis': analysis,
+                'questions': questions,
+                'model': model,
+                'answers': app.answers,
+                'evaluations': app.evaluations
+            }
+            
+            storage.save_session(commit_hash, session_data)
+            logger.info("Session saved successfully")
+            
+            if ctx.obj.get('debug'):
+                log_dir = Path(analyzer.repo_root) / '.vca' / 'logs'
+                ui.print_info(f"Debug logs saved to {log_dir}")
+            
+            return
+        
+        # Original CLI Q&A session (--no-tui mode)
         
         for i, question in enumerate(questions, 1):
             logger.info(f"Presenting question {i}/{len(questions)}")

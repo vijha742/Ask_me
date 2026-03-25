@@ -26,7 +26,7 @@ class VCAStorage:
             # Create default config if it doesn't exist
             if not self.config_file.exists():
                 default_config = {
-                    "model": "auto",  # Let OpenCode choose the best free model
+                    "model": "github-copilot/gpt-4.1",  # Let OpenCode choose the best free model
                     "question_count": 6,
                     "difficulty": "adaptive",
                     "categories": [

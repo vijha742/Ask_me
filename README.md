@@ -46,8 +46,44 @@ vca config
 
 ## Commands
 
+### TUI Mode (Default)
+
+vca uses a modern Text User Interface by default for an interactive learning experience:
+
+```bash
+vca ask  # Launches TUI
+```
+
+**TUI Features:**
+- Multi-line answer input with full text editing
+- Scrollable content for long questions
+- Navigate between questions (Ctrl+N/P)
+- Toggle hints on/off (Ctrl+H)
+- Real-time feedback display
+- Session summary with statistics
+
+**Keyboard Shortcuts:**
+- `Ctrl+S` - Submit answer
+- `Ctrl+H` - Toggle hints
+- `Ctrl+N` / `Ctrl+P` - Next/Previous question
+- `Tab` / `Shift+Tab` - Navigate widgets
+- `Escape` - Skip question
+- `F1` - Show help
+- `Ctrl+Q` - Quit application
+
+### CLI Mode
+
+For scripting or simpler usage, use the classic CLI mode:
+
+```bash
+vca ask --no-tui
+```
+
+### Other Commands
+
 - `vca init` - Initialize vca in current git repository
-- `vca ask` - Generate questions for your last commit
+- `vca ask` - Generate questions for your last commit (TUI mode)
+- `vca ask --no-tui` - Use classic CLI mode
 - `vca ask --diff HEAD~3` - Questions for specific commit range
 - `vca ask --count 10` - Generate 10 questions instead of default
 - `vca --debug ask` - Enable debug logging for troubleshooting
